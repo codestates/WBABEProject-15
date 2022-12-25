@@ -84,13 +84,14 @@
     
   
 
--데이터베이스 
+  
+ -데이터베이스 
 
-1. menu-list : 피주문자가 등록한 메뉴판
+  1. menu-list : 피주문자가 등록한 메뉴판
 
-2.order-info : 주문자들의 주문정보
+  2.order-info : 주문자들의 주문정보
 
-3. menu-review : 메뉴에 대한 리뷰
+  3. menu-review : 메뉴에 대한 리뷰
  
   
   
