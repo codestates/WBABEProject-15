@@ -26,6 +26,13 @@ type OrderList struct {
 	State      string `bson:"state"`      //주문 상태
 	ChangeMenu string `bson:"changeMenu"` //주문 추가 및 변경 변수
 }
+/* [코드리뷰]
+ * OrderTime과 같이 시간을 나타내는 데이터는 primitive.DateTime 로 선언해주시는 것을 추천드립니다.
+ * string으로 다루는 부분이 편리하기 하나, 데이터 정합성 측면에서 오류코드를 잡아낼 수 없습니다.
+ * ex) 2022-02-30 과 같은 날은 존재하지 않으나, string 타입으로는 아무런 문제없이 받아줄 수 있습니다.
+ * 필연적으로 string으로 타입을 선언해주어야 하는 이유가 존재한다면, 해당 타입의 valiation check를 한번씩
+ * 수행해주는 것도 괜찮은 방법입니다.
+ */
 
 type BurgerKing struct {
 	Menu        string `bson:"menu"`        //메뉴이름
@@ -72,6 +79,13 @@ func (p *Model) GetAllMenu(sortOption string) []BurgerKing {
 	var burgers []BurgerKing
 	if err = cursor.All(context.TODO(), &burgers); err != nil {
 		panic(err)
+		/* [코드리뷰]
+		 * error 상황에 대한 예외처리를 하는 코드가 많이 보입니다.
+		 * 위 코드와 같이 의도적으로 panic을 실행하며 프로그램을 종료시키는 것도 하나의 방법이겠지만, 
+		 * API 서버가 중단되는 일은 최대한 피해야 합니다. 
+		 * error 상황에 대한 처리를 해줄 때는 주문관리 시스템의 running을 보장하기 위해,
+		 * panic이 아닌, error 상황을 별도로 관리하는 코드로 변경해보시는 것을 추천드립니다.
+		 */
 	}
 	fmt.Println("Sorted by ", sortOption)
 	for _, result := range burgers {
