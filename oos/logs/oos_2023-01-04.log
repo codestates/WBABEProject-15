@@ -1,0 +1,5 @@
+{"level":"DEBUG","time":"2023-01-04T23:53:56.042+0900","caller":"logger/logger.go:51","msg":"debug","-":"ready server.... "}
+{"level":"INFO","time":"2023-01-04T23:53:56.055+0900","caller":"logger/logger.go:62","msg":"info","-":"start server "}
+{"level":"WARN","time":"2023-01-04T23:53:57.867+0900","caller":"logger/logger.go:73","msg":"warn","-":"Shutdown Server ... "}
+{"level":"INFO","time":"2023-01-04T23:54:02.868+0900","caller":"logger/logger.go:62","msg":"info","-":"timeout 5 seconds. "}
+{"level":"INFO","time":"2023-01-04T23:54:02.869+0900","caller":"logger/logger.go:62","msg":"info","-":"Server stop "}

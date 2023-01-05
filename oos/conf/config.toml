@@ -12,7 +12,7 @@ name = "userDB"
 [db.account]
 host = "mongodb://localhost:27017"
 user = "admin"
-pass = "admin!@"
+pass = "*****"
 name = "accountDB"
 
 [log]

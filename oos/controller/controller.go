@@ -16,6 +16,13 @@ type Controller struct {
 	md *model.Model
 }
 
+const (
+	receiving  = iota //접수중
+	cooking           //조리중
+	delivering        //배달중
+	delivered         //배달완료
+)
+
 func NewCTL(rep *model.Model) (*Controller, error) {
 	r := &Controller{md: rep}
 	return r, nil
@@ -108,6 +115,13 @@ func (p *Controller) WriteReview(c *gin.Context) {
 	}
 
 	grade, _ := strconv.Atoi(sGrade)
+
+	if grade < 1 { //평점의 최대 최소값 설정 로직, min = 1 ,max = 10
+		grade = 1
+	} else if grade > 10 {
+		grade = 10
+	}
+
 	req := model.MenuReview{Menu: menuName, Grade: grade, Review: review} //리뷰 db에 저장
 	if err := p.md.WriteReview(req); err != nil {
 		p.RespError(c, nil, http.StatusUnprocessableEntity, "You didn`t order that menu", nil)
@@ -135,29 +149,29 @@ func (p *Controller) OrderMenu(c *gin.Context) {
 	pnum := c.PostForm("pnum")
 	address := c.PostForm("address")
 	orderTime := time.Now().Format("2006-01-02 15:04:05")
-	state := "접수중" //최초 상태는 접수중...
+	state := receiving //최초 상태는 접수중...
 
 	if len(menuName) <= 0 || len(address) <= 0 {
 		p.RespError(c, nil, http.StatusUnprocessableEntity, "parameter not found", nil)
 		return
 	}
 
-	req := model.OrderList{Menu: menuName, Pnum: pnum, Address: address, OrderTime: orderTime, State: state}
-
-	if err := p.md.OrderMenu(req); err != nil {
-		p.RespError(c, nil, http.StatusUnprocessableEntity, "parameter not found", nil)
-		return
-	}
-
 	r, _ := model.NewModel()
-	count := 0
+	count := 1 // 최초 주문카운트
 	orders := r.GetAllOrderList()
 	for _, order := range orders {
 		if order == (model.OrderList{}) { //주문 내역 없으면 null
 			p.RespError(c, nil, http.StatusUnprocessableEntity, "Null", nil)
 			return
 		}
-		count++
+		count++ //주문 내역의 횟수 카운트
+	}
+
+	req := model.OrderList{OrderNum: count, Menu: menuName, Pnum: pnum, Address: address, OrderTime: orderTime, State: state}
+
+	if err := p.md.OrderMenu(req); err != nil {
+		p.RespError(c, nil, http.StatusUnprocessableEntity, "parameter not found", nil)
+		return
 	}
 
 	c.JSON(200, gin.H{
@@ -178,22 +192,23 @@ func (p *Controller) OrderMenu(c *gin.Context) {
 // @Router /customer/addMenu [put]
 // @Success 200 {object} Controller
 func (p *Controller) AddMenu(c *gin.Context) {
-	beforeMenu := c.PostForm("menu")
+	orderNum := c.PostForm("orderNum")
 	addMenu := c.PostForm("changeMenu")
 
-	orderList, _ := p.md.GetOrderListByMenu("menu", beforeMenu)
-	if orderList == (model.OrderList{}) { //해당 메뉴의 주문 내역이 없으면
+	orderList, _ := p.md.GetOrderListByOrderNum("orderNum", orderNum) // 주문번호로 주문내역 조회
+	if orderList == (model.OrderList{}) {                             //해당 메뉴의 주문 내역이 없으면
 		p.RespError(c, nil, http.StatusUnprocessableEntity, " You didn`t ordered that menu before", nil)
 		return
 	}
 
-	if orderList.State == "배달중" { // 신규 주문으로 전환
-
+	if orderList.State == delivering { // 신규 주문으로 전환
+		newOrderNum := orderList.OrderNum
+		newOrderNum++ //신규배달이니까 배달번호 증가
 		pnum := orderList.Pnum
 		address := orderList.Address
 		orderTime := time.Now().Format("2006-01-02 15:04:05")
-		state := "접수중"
-		req := model.OrderList{Menu: addMenu, Pnum: pnum, Address: address, OrderTime: orderTime, State: state}
+		state := receiving
+		req := model.OrderList{OrderNum: newOrderNum, Menu: addMenu, Pnum: pnum, Address: address, OrderTime: orderTime, State: state}
 
 		if err := p.md.OrderMenu(req); err != nil {
 			p.RespError(c, nil, http.StatusUnprocessableEntity, "parameter not found", nil)
@@ -205,8 +220,8 @@ func (p *Controller) AddMenu(c *gin.Context) {
 		})
 		c.Next()
 	} else {
-		addMenu = beforeMenu + " , " + addMenu
-		if err := p.md.ChangeMenu(beforeMenu, addMenu); err != nil {
+		newMenu := orderList.Menu + " , " + addMenu
+		if err := p.md.ChangeMenu(orderNum, newMenu); err != nil {
 			p.RespError(c, nil, http.StatusUnprocessableEntity, "Fail,parameter not found", nil)
 			return
 		}
@@ -227,25 +242,25 @@ func (p *Controller) AddMenu(c *gin.Context) {
 // @Router /customer/changeMenu [put]
 // @Success 200 {object} Controller
 func (p *Controller) ChangeMenu(c *gin.Context) {
-	beforeMenu := c.PostForm("menu")
+	orderNum := c.PostForm("orderNum")
 	afterMenu := c.PostForm("changeMenu")
 
-	if len(beforeMenu) <= 0 || len(afterMenu) <= 0 {
+	if len(orderNum) <= 0 || len(afterMenu) <= 0 {
 		p.RespError(c, nil, http.StatusUnprocessableEntity, "parameter not found", nil)
 		return
 	}
 
-	orderList, _ := p.md.GetOrderListByMenu("menu", beforeMenu)
-	if orderList == (model.OrderList{}) { //해당 메뉴의 주문 내역이 없으면
+	orderList, _ := p.md.GetOrderListByOrderNum("orderNum", orderNum) // 주문번호로 주문내역 조회
+	if orderList == (model.OrderList{}) {                             //해당 메뉴의 주문 내역이 없으면
 		p.RespError(c, nil, http.StatusUnprocessableEntity, " You didn`t ordered that menu before", nil)
 		return
 	}
 
-	if orderList.State == "조리중" || orderList.State == "배달중" {
+	if orderList.State == cooking || orderList.State == delivering {
 		c.JSON(200, gin.H{"msg": "Sorry, You can not change menu."})
 		c.Next()
-	} else if orderList.State == "접수중" {
-		if err := p.md.ChangeMenu(beforeMenu, afterMenu); err != nil {
+	} else if orderList.State == receiving {
+		if err := p.md.ChangeMenu(orderNum, afterMenu); err != nil {
 			p.RespError(c, nil, http.StatusUnprocessableEntity, "Fail,parameter not found", nil)
 			return
 		}
@@ -346,7 +361,7 @@ func (p *Controller) DeleteMenu(c *gin.Context) {
 }
 
 // RegisterMenu godoc
-// @Summary call RegisterMenu, return ""Register menu Success" by json.
+// @Summary call RegisterMenu, return "Failed, Menu already exist" or "Register menu Success" by json.
 // @Description 신규메뉴 등록기능(피주문자가 수행)
 // @name RegisterMenu
 // @Accept  json
@@ -374,13 +389,21 @@ func (p *Controller) RegisterMenu(c *gin.Context) {
 
 	req := model.BurgerKing{Menu: menuName, Price: price, Recommend: recommend, Grade: grade, ReleaseTime: releaseTime}
 
-	if err := p.md.CreateMenu(req); err != nil {
-		p.RespError(c, nil, http.StatusUnprocessableEntity, "parameter not found", nil)
-		return
-	}
+	flag := p.md.AlreadyExist(menuName) //중복 방지 판단 변수
 
-	c.JSON(200, gin.H{"result": "Register menu Success"})
-	c.Next()
+	if flag == true {
+		c.JSON(200, gin.H{"result": "Failed...Menu already exist"})
+		c.Next()
+	} else {
+		fmt.Println("here")
+		if err := p.md.CreateMenu(req); err != nil {
+			p.RespError(c, nil, http.StatusUnprocessableEntity, "parameter not found", nil)
+			return
+		}
+
+		c.JSON(200, gin.H{"result": "Register menu Success"})
+		c.Next()
+	}
 }
 
 // UpdateOrderState godoc
@@ -394,19 +417,32 @@ func (p *Controller) RegisterMenu(c *gin.Context) {
 // @Router /seller/updateOrderState [put]
 // @Success 200 {object} Controller
 func (p *Controller) UpdateOrderState(c *gin.Context) {
-	menuName := c.PostForm("menu")
-	state := c.PostForm("state")
-	if len(menuName) <= 0 || len(state) <= 0 {
+	sOrderNum := c.PostForm("orderNum")
+	sState := c.PostForm("state")
+	if len(sOrderNum) <= 0 || len(sState) <= 0 {
 		p.RespError(c, nil, http.StatusUnprocessableEntity, "Fail,parameter not found", nil)
 		return
 	}
 
-	if err := p.md.UpdateState(menuName, state); err != nil {
+	orderNum, _ := strconv.Atoi(sOrderNum)
+	state, _ := strconv.Atoi(sState)
+	sstate := ""
+	if state == receiving {
+		sstate = "receiving"
+	} else if state == cooking {
+		sstate = "cooking"
+	} else if state == delivering {
+		sstate = "delivering"
+	} else {
+		sstate = "delivered"
+	}
+
+	if err := p.md.UpdateState(orderNum, state); err != nil {
 		p.RespError(c, nil, http.StatusUnprocessableEntity, "Fail,parameter not found", nil)
 		return
 	}
 
 	fmt.Println("State changed")
-	c.JSON(200, gin.H{"msg": "State change success", menuName: state})
+	c.JSON(200, gin.H{"msg": "State change success", "OrderNum": orderNum, "State": sstate})
 	c.Next()
 }

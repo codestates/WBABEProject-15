@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -19,11 +20,12 @@ type Model struct {
 }
 
 type OrderList struct {
+	OrderNum   int    `bson:"orderNum"`   //주문번호
 	Menu       string `bson:"menu"`       //메뉴 이름
 	Pnum       string `bson:"pnum"`       //고객 번호
 	Address    string `bson:"address"`    //고객 주소
 	OrderTime  string `bson:"orderTime"`  //주문 시간
-	State      string `bson:"state"`      //주문 상태
+	State      int    `bson:"state"`      //주문 상태
 	ChangeMenu string `bson:"changeMenu"` //주문 추가 및 변경 변수
 }
 
@@ -87,13 +89,29 @@ func (p *Model) GetAllMenu(sortOption string) []BurgerKing {
 	return burgers
 }
 
-// 메뉴이름으로 주문내역
+// 메뉴이름으로 메뉴조회
 func (p *Model) GetOrderListByMenu(flag, menuName string) (OrderList, error) {
 	opts := []*options.FindOneOptions{}
-
 	var filter bson.M
 	if flag == "menu" {
 		filter = bson.M{"menu": menuName}
+	}
+
+	var orderInfo OrderList
+	if err := p.colOrderList.FindOne(context.TODO(), filter, opts...).Decode(&orderInfo); err != nil {
+		return orderInfo, err
+	} else {
+		return orderInfo, nil
+	}
+}
+
+// 주문번호로 주문내역 조회
+func (p *Model) GetOrderListByOrderNum(flag, sOrderNum string) (OrderList, error) {
+	opts := []*options.FindOneOptions{}
+	orderNum, _ := strconv.Atoi(sOrderNum)
+	var filter bson.M
+	if flag == "orderNum" {
+		filter = bson.M{"orderNum": orderNum}
 	}
 
 	var orderInfo OrderList
@@ -160,8 +178,9 @@ func (p *Model) WriteReview(review MenuReview) error {
 }
 
 // 메뉴 업데이트 (주문자)
-func (p *Model) ChangeMenu(menu, afterMenu string) error {
-	filter := bson.M{"menu": menu}
+func (p *Model) ChangeMenu(sOrderNum, afterMenu string) error {
+	orderNum, _ := strconv.Atoi(sOrderNum)
+	filter := bson.M{"orderNum": orderNum}
 	update := bson.M{
 		"$set": bson.M{
 			"menu": afterMenu,
@@ -196,10 +215,24 @@ func (p *Model) GetMenu(flag, menuName string) (BurgerKing, error) {
 // 메뉴 등록 (피주문자)
 func (p *Model) CreateMenu(burger BurgerKing) error {
 	if _, err := p.colMenu.InsertOne(context.TODO(), burger); err != nil {
-		fmt.Println("Failed to create new menu")
-		return fmt.Errorf(" Fail, create new menu")
+		panic(err)
 	}
 	return nil
+}
+
+// 메뉴 중복 판별 (피주문자)
+func (p *Model) AlreadyExist(menuName string) bool {
+	filter := bson.M{"menu": menuName}
+	var tmp BurgerKing
+	p.colMenu.FindOne(context.TODO(), filter).Decode(&tmp)
+
+	if tmp.Menu == menuName { //이미 존재하는 메뉴면
+		fmt.Println("Menu already exist")
+		return true
+	} else {
+		return false
+	}
+
 }
 
 // 메뉴 삭제 (피주문자)
@@ -234,8 +267,10 @@ func (p *Model) UpdateMenu(menuName string, price, recommend int) error {
 }
 
 // 주문 상태 업데이트(피주문자)
-func (p *Model) UpdateState(menuName, state string) error {
-	filter := bson.M{"menu": menuName}
+func (p *Model) UpdateState(orderNum, state int) error {
+	//orderNum, _ := strconv.Atoi(sOrderNum)
+
+	filter := bson.M{"orderNum": orderNum}
 	update := bson.M{
 		"$set": bson.M{
 			"state": state,

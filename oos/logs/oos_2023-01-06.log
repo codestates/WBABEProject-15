@@ -1,0 +1,12 @@
+{"level":"DEBUG","time":"2023-01-06T01:34:28.132+0900","caller":"logger/logger.go:51","msg":"debug","-":"ready server.... "}
+{"level":"INFO","time":"2023-01-06T01:34:28.141+0900","caller":"logger/logger.go:62","msg":"info","-":"start server "}
+{"level":"INFO","time":"2023-01-06T01:41:19.706+0900","caller":"logger/logger.go:115","msg":"/seller/updateOrderState","status":200,"method":"PUT","path":"/seller/updateOrderState","query":"","ip":"127.0.0.1","user-agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36","errors":"","cost":0.075034177}
+{"level":"WARN","time":"2023-01-06T01:41:38.049+0900","caller":"logger/logger.go:73","msg":"warn","-":"Shutdown Server ... "}
+{"level":"INFO","time":"2023-01-06T01:41:43.049+0900","caller":"logger/logger.go:62","msg":"info","-":"timeout 5 seconds. "}
+{"level":"INFO","time":"2023-01-06T01:41:43.049+0900","caller":"logger/logger.go:62","msg":"info","-":"Server stop "}
+{"level":"DEBUG","time":"2023-01-06T01:44:09.222+0900","caller":"logger/logger.go:51","msg":"debug","-":"ready server.... "}
+{"level":"INFO","time":"2023-01-06T01:44:09.224+0900","caller":"logger/logger.go:62","msg":"info","-":"start server "}
+{"level":"INFO","time":"2023-01-06T01:44:13.160+0900","caller":"logger/logger.go:115","msg":"/seller/updateOrderState","status":200,"method":"PUT","path":"/seller/updateOrderState","query":"","ip":"127.0.0.1","user-agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36","errors":"","cost":0.00101809}
+{"level":"WARN","time":"2023-01-06T01:44:23.841+0900","caller":"logger/logger.go:73","msg":"warn","-":"Shutdown Server ... "}
+{"level":"INFO","time":"2023-01-06T01:44:28.842+0900","caller":"logger/logger.go:62","msg":"info","-":"timeout 5 seconds. "}
+{"level":"INFO","time":"2023-01-06T01:44:28.843+0900","caller":"logger/logger.go:62","msg":"info","-":"Server stop "}
