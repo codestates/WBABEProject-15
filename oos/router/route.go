@@ -86,6 +86,19 @@ func (p *Router) Idx() *gin.Engine {
 		seller.PUT("/updateOrderState", p.ct.UpdateOrderState) //주문내역 조회 및 상태 변경
 		seller.DELETE("/delete/:menu", p.ct.DeleteMenu)        //메뉴 삭제
 	}
+	/* [코드리뷰]
+	 * Group을 사용하여 API 성격에 따라 request를 관리하는 코드는 매우 좋은 코드입니다.
+     * 일반적으로 현업에서도 이와 같은 코드를 자주 사용합니다. 훌륭합니다.
+	 *
+	 * 코드의 확장성을 고려하였을때, endpoint 관리를 함께 고려한 코드를 개발하는 것도 추천드립니다.
+	 * 예를들어 /customer/orderMenu 를 호출하는 클라이언트(Web, App, etc..)들이 실시간으로 들어오고 있을 때,
+	 * controller의 OrderMenu function을 변경해야 하는 상황이 발생한다면,
+	 * /customer/orderMenu2 로 받아주는 경우가 있을 것이고(/customer/orderMenu 그대로 받아주면서)
+	 * 처음부터 /customer/v1/OrderMenu 로 관리되며, 
+	 * /customer/v2/orderMenu 리뉴얼 버전에 따라 version up을 시켜
+	 * v01 방식의 클라이언트와, v02 방식의 클라이언트를 모두 받아줄 수 있는 
+	 * 확장성 있는 코드를 구현해보시는 것을 추천드립니다.
+	 */
 
 	return e
 }
